@@ -1,6 +1,12 @@
 # Hammer.Plug
 
-**TODO: Add description**
+## WARNING: Work in progress, use at your own risk
+
+
+A plug helper to apply rate-limiting, with
+[hammer](https://github.com/ExHammer/hammer)
+
+Example:
 
 ```elixir
 plug Hammer.Plug, id: "video:upload", scale: 60_000, limit: 10, by: :ip
