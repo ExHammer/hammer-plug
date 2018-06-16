@@ -1,5 +1,8 @@
 # Hammer.Plug
 
+[![Build Status](https://travis-ci.org/ExHammer/hammer-plug.svg?branch=master)](https://travis-ci.org/ExHammer/hammer-plug)
+
+
 ## WARNING: Work in progress, use at your own risk
 
 
