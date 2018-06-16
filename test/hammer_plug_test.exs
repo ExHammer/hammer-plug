@@ -3,10 +3,10 @@ defmodule Hammer.PlugTest.IP do
   use Plug.Test
   import Mock
 
-  @opts Hammer.Plug.init([id: "test", scale: 1_000, limit: 3, by: :ip])
+  @opts Hammer.Plug.init(id: "test", scale: 1_000, limit: 3, by: :ip)
 
   test "passes the conn through on success" do
-    with_mock Hammer, check_rate: fn(_a, _b, _c) -> {:allow, 1} end do
+    with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
       # Create a test connection
       conn = conn(:get, "/hello")
 
@@ -20,7 +20,7 @@ defmodule Hammer.PlugTest.IP do
   end
 
   test "halts the conn and sends a 429 on failure" do
-    with_mock Hammer, check_rate: fn(_a, _b, _c) -> {:deny, 1} end do
+    with_mock Hammer, check_rate: fn _a, _b, _c -> {:deny, 1} end do
       # Create a test connection
       conn = conn(:get, "/hello")
 
@@ -40,15 +40,14 @@ defmodule Hammer.PlugTest.Session do
   use Plug.Test
   import Mock
 
-  @opts Hammer.Plug.init([
-    id: "test", scale: 1_000, limit: 3, by: {:session, :user_id}
-  ])
+  @opts Hammer.Plug.init(id: "test", scale: 1_000, limit: 3, by: {:session, :user_id})
 
   test "passes the conn through on success" do
-    with_mock Hammer, check_rate: fn(_a, _b, _c) -> {:allow, 1} end do
+    with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
       # Create a test connection
-      conn = conn(:get, "/hello")
-      |> init_test_session(%{user_id: "123487"})
+      conn =
+        conn(:get, "/hello")
+        |> init_test_session(%{user_id: "123487"})
 
       # Invoke the plug
       conn = Hammer.Plug.call(conn, @opts)
@@ -60,10 +59,11 @@ defmodule Hammer.PlugTest.Session do
   end
 
   test "halts the conn and sends a 429 on failure" do
-    with_mock Hammer, check_rate: fn(_a, _b, _c) -> {:deny, 1} end do
+    with_mock Hammer, check_rate: fn _a, _b, _c -> {:deny, 1} end do
       # Create a test connection
-      conn = conn(:get, "/hello")
-      |> init_test_session(%{user_id: "123487"})
+      conn =
+        conn(:get, "/hello")
+        |> init_test_session(%{user_id: "123487"})
 
       # Invoke the plug
       conn = Hammer.Plug.call(conn, @opts)
@@ -87,15 +87,19 @@ defmodule Hammer.PlugTest.Session.Func do
   use Plug.Test
   import Mock
 
-  @opts Hammer.Plug.init([
-    id: "test", scale: 1_000, limit: 3, by: {:session, :user, &Foo.user_id/1}
-  ])
+  @opts Hammer.Plug.init(
+          id: "test",
+          scale: 1_000,
+          limit: 3,
+          by: {:session, :user, &Foo.user_id/1}
+        )
 
   test "passes the conn through on success" do
-    with_mock Hammer, check_rate: fn(_a, _b, _c) -> {:allow, 1} end do
+    with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
       # Create a test connection
-      conn = conn(:get, "/hello")
-      |> init_test_session(%{user: %{id: "123487"}})
+      conn =
+        conn(:get, "/hello")
+        |> init_test_session(%{user: %{id: "123487"}})
 
       # Invoke the plug
       conn = Hammer.Plug.call(conn, @opts)
@@ -107,10 +111,11 @@ defmodule Hammer.PlugTest.Session.Func do
   end
 
   test "halts the conn and sends a 429 on failure" do
-    with_mock Hammer, check_rate: fn(_a, _b, _c) -> {:deny, 1} end do
+    with_mock Hammer, check_rate: fn _a, _b, _c -> {:deny, 1} end do
       # Create a test connection
-      conn = conn(:get, "/hello")
-      |> init_test_session(%{user: %{id: "123487"}})
+      conn =
+        conn(:get, "/hello")
+        |> init_test_session(%{user: %{id: "123487"}})
 
       # Invoke the plug
       conn = Hammer.Plug.call(conn, @opts)
