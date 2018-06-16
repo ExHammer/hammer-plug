@@ -36,7 +36,7 @@ defmodule Hammer.PlugTest.IP do
 end
 
 defmodule Hammer.PlugTest.Session do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   use Plug.Test
   import Mock
 
@@ -83,7 +83,7 @@ defmodule Foo do
 end
 
 defmodule Hammer.PlugTest.Session.Func do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   use Plug.Test
   import Mock
 
