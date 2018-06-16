@@ -21,7 +21,9 @@ defmodule Hammer.Plug.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:plug, "~> 1.0"}
+      {:hammer, "~> 5.0"},
+      {:plug, "~> 1.0"},
+      {:mock, "~> 0.2.0", only: :test}
     ]
   end
 end
