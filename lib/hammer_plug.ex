@@ -4,8 +4,6 @@ defmodule Hammer.Plug do
   """
   import Plug.Conn
 
-  @valid_methods [:ip]
-
   def init(), do: init([])
   def init(opts), do: opts
 
@@ -17,7 +15,7 @@ defmodule Hammer.Plug do
     scale = Keyword.get(opts, :scale, 60_000)
     limit = Keyword.get(opts, :limit, 60)
     by = Keyword.get(opts, :by, :ip)
-    if !Enum.member?(@valid_methods, by) do
+    if !is_valid_method(by) do
       raise "Hammer.Plug: invalid `by` parameter: #{to_string(by)}"
     end
     full_id = build_identifier(conn, id_prefix, by)
@@ -31,10 +29,29 @@ defmodule Hammer.Plug do
     end
   end
 
+  defp is_valid_method(by) do
+    case by do
+      :ip -> true
+      {:session, _key} -> true
+      {:session, _key, _func} -> true
+      _ -> false
+    end
+  end
+
   defp build_identifier(conn, prefix, :ip) do
     ip_string = conn.remote_ip
     |> Tuple.to_list
     |> Enum.join(".")
     "#{prefix}:#{ip_string}"
+  end
+
+  defp build_identifier(conn, prefix, {:session, key}) do
+    session_val = get_session(conn, key)
+    "#{prefix}:#{session_val}"
+  end
+
+  defp build_identifier(conn, prefix, {:session, key, func}) do
+    session_val = get_session(conn, key) |> func.()
+    "#{prefix}:#{session_val}"
   end
 end
