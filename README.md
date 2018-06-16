@@ -12,6 +12,7 @@ Example:
 plug Hammer.Plug, id: "video:upload", scale: 60_000, limit: 10, by: :ip
 ```
 
+
 ## Installation
 
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed
