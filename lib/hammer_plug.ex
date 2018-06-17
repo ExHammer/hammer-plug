@@ -37,7 +37,7 @@ defmodule Hammer.Plug do
         case when_nil do
           # Proceed
           :use_nil ->
-            do_check(conn, id_prefix, nil, scale, limit, on_deny_handler)
+            do_rate_limit_check(conn, id_prefix, nil, scale, limit, on_deny_handler)
 
           :raise ->
             raise Hammer.Plug.NilError
@@ -48,7 +48,7 @@ defmodule Hammer.Plug do
         end
 
       id ->
-        do_check(conn, id_prefix, id, scale, limit, on_deny_handler)
+        do_rate_limit_check(conn, id_prefix, id, scale, limit, on_deny_handler)
     end
   end
 
@@ -83,7 +83,7 @@ defmodule Hammer.Plug do
     end
   end
 
-  defp do_check(conn, id_prefix, request_id, scale, limit, on_deny_handler) do
+  defp do_rate_limit_check(conn, id_prefix, request_id, scale, limit, on_deny_handler) do
     full_id = "#{id_prefix}:#{request_id}"
 
     case Hammer.check_rate(full_id, scale, limit) do
