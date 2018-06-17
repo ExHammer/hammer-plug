@@ -12,7 +12,7 @@ A plug helper to apply rate-limiting, with
 Example:
 
 ```elixir
-plug Hammer.Plug, id: "video:upload", scale: 60_000, limit: 10, by: :ip
+plug Hammer.Plug, {{"video:upload", 60_000, 10}, by: :ip}
 ```
 
 
