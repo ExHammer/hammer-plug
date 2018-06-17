@@ -49,8 +49,8 @@ defmodule Hammer.Plug do
   defp is_valid_method(by) do
     case by do
       :ip -> true
-      {:session, _key} -> true
-      {:session, _key, _func} -> true
+      {:session, key} when is_atom(key) -> true
+      {:session, key, func} when is_atom(key) and is_function(func) -> true
       _ -> false
     end
   end
