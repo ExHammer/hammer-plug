@@ -1,7 +1,24 @@
+defmodule Helpers do
+  import Plug.Conn
+
+  def user_id(user) do
+    user.id
+  end
+
+  def on_deny(conn, _opts) do
+    conn
+    |> put_resp_header("x-hammer-test", "yes")
+    |> send_resp(404, "Not Found")
+    |> halt()
+  end
+end
+
 defmodule Hammer.PlugTest do
   use ExUnit.Case, async: false
   use Plug.Test
   import Mock
+
+  Application.start(:plug)
 
   describe "by ip address" do
     @opts Hammer.Plug.init(id: "test", scale: 1_000, limit: 3, by: :ip)
@@ -24,6 +41,40 @@ defmodule Hammer.PlugTest do
           |> Hammer.Plug.call(@opts)
 
         assert conn.status == 429
+        assert conn.halted == true
+        assert called(Hammer.check_rate("test:127.0.0.1", 1_000, 3))
+      end
+    end
+  end
+
+  describe "with custom on_deny handler" do
+    @opts Hammer.Plug.init(
+            id: "test",
+            scale: 1_000,
+            limit: 3,
+            by: :ip,
+            on_deny: &Helpers.on_deny/2
+          )
+
+    test "passes the conn through on success" do
+      with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
+        conn =
+          conn(:get, "/hello")
+          |> Hammer.Plug.call(@opts)
+
+        assert conn.status == nil
+        assert called(Hammer.check_rate("test:127.0.0.1", 1_000, 3))
+      end
+    end
+
+    test "halts the conn and sends a 404 (non default) on failure" do
+      with_mock Hammer, check_rate: fn _a, _b, _c -> {:deny, 1} end do
+        conn =
+          conn(:get, "/hello")
+          |> Hammer.Plug.call(@opts)
+
+        assert conn.status == 404
+        assert get_resp_header(conn, "x-hammer-test") == ["yes"]
         assert conn.halted == true
         assert called(Hammer.check_rate("test:127.0.0.1", 1_000, 3))
       end
@@ -65,17 +116,11 @@ defmodule Hammer.PlugTest do
   end
 
   describe "session, with function" do
-    defmodule Foo do
-      def user_id(user) do
-        user.id
-      end
-    end
-
     @opts Hammer.Plug.init(
             id: "test",
             scale: 1_000,
             limit: 3,
-            by: {:session, :user, &Foo.user_id/1}
+            by: {:session, :user, &Helpers.user_id/1}
           )
 
     test "passes the conn through on success" do

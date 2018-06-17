@@ -18,6 +18,13 @@ defmodule Hammer.Plug do
     limit = Keyword.get(opts, :limit, 60)
     by = Keyword.get(opts, :by, :ip)
 
+    on_deny_handler =
+      Keyword.get(
+        opts,
+        :on_deny,
+        &Hammer.Plug.default_on_deny_handler/2
+      )
+
     if !is_valid_method(by) do
       raise "Hammer.Plug: invalid `by` parameter: #{to_string(by)}"
     end
@@ -29,10 +36,14 @@ defmodule Hammer.Plug do
         conn
 
       {:deny, _n} ->
-        conn
-        |> send_resp(429, "Too Many Requests")
-        |> halt()
+        on_deny_handler.(conn, [])
     end
+  end
+
+  def default_on_deny_handler(conn, _opts) do
+    conn
+    |> send_resp(429, "Too Many Requests")
+    |> halt()
   end
 
   defp is_valid_method(by) do
