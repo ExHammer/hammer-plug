@@ -11,12 +11,13 @@ defmodule Hammer.Plug do
     id_prefix = Keyword.get(opts, :id)
 
     if id_prefix == nil do
-      raise "Hammer.Plug: no id prefix specified"
+      raise Hammer.Plug.IdPrefixError
     end
 
     scale = Keyword.get(opts, :scale, 60_000)
     limit = Keyword.get(opts, :limit, 60)
     by = Keyword.get(opts, :by, :ip)
+    when_nil = Keyword.get(opts, :when_nil, :use_nil)
 
     on_deny_handler =
       Keyword.get(
@@ -26,10 +27,64 @@ defmodule Hammer.Plug do
       )
 
     if !is_valid_method(by) do
-      raise "Hammer.Plug: invalid `by` parameter: #{to_string(by)}"
+      raise "Hammer.Plug: invalid `by` parameter"
     end
 
-    full_id = build_identifier(conn, id_prefix, by)
+    request_identifier = get_request_identifier(conn, by)
+
+    case request_identifier do
+      nil ->
+        case when_nil do
+          # Proceed
+          :use_nil ->
+            do_check(conn, id_prefix, nil, scale, limit, on_deny_handler)
+
+          :raise ->
+            raise Hammer.Plug.NilError
+
+          :pass ->
+            # Skip check
+            conn
+        end
+
+      id ->
+        do_check(conn, id_prefix, id, scale, limit, on_deny_handler)
+    end
+  end
+
+  def default_on_deny_handler(conn, _opts) do
+    conn
+    |> send_resp(429, "Too Many Requests")
+    |> halt()
+  end
+
+  ## Private helpers
+
+  defp get_request_identifier(conn, by) do
+    case by do
+      :ip ->
+        conn.remote_ip
+        |> Tuple.to_list()
+        |> Enum.join(".")
+
+      {:session, key} ->
+        get_session(conn, key)
+
+      {:session, key, func} ->
+        val = get_session(conn, key)
+
+        case val do
+          nil ->
+            nil
+
+          other ->
+            func.(other)
+        end
+    end
+  end
+
+  defp do_check(conn, id_prefix, request_id, scale, limit, on_deny_handler) do
+    full_id = "#{id_prefix}:#{request_id}"
 
     case Hammer.check_rate(full_id, scale, limit) do
       {:allow, _n} ->
@@ -40,12 +95,6 @@ defmodule Hammer.Plug do
     end
   end
 
-  def default_on_deny_handler(conn, _opts) do
-    conn
-    |> send_resp(429, "Too Many Requests")
-    |> halt()
-  end
-
   defp is_valid_method(by) do
     case by do
       :ip -> true
@@ -54,23 +103,12 @@ defmodule Hammer.Plug do
       _ -> false
     end
   end
+end
 
-  defp build_identifier(conn, prefix, :ip) do
-    ip_string =
-      conn.remote_ip
-      |> Tuple.to_list()
-      |> Enum.join(".")
+defmodule Hammer.Plug.NilError do
+  defexception message: "Request identifier value is nil"
+end
 
-    "#{prefix}:#{ip_string}"
-  end
-
-  defp build_identifier(conn, prefix, {:session, key}) do
-    session_val = get_session(conn, key)
-    "#{prefix}:#{session_val}"
-  end
-
-  defp build_identifier(conn, prefix, {:session, key, func}) do
-    session_val = get_session(conn, key) |> func.()
-    "#{prefix}:#{session_val}"
-  end
+defmodule Hammer.Plug.IdPrefixError do
+  defexception message: "No id-prefix supplied"
 end
