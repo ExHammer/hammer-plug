@@ -31,7 +31,12 @@ defmodule Hammer.PlugTest do
   end
 
   describe "by session" do
-    @opts Hammer.Plug.init(id: "test", scale: 1_000, limit: 3, by: {:session, :user_id})
+    @opts Hammer.Plug.init(
+            id: "test",
+            scale: 1_000,
+            limit: 3,
+            by: {:session, :user_id}
+          )
 
     test "passes the conn through on success" do
       with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
