@@ -1,129 +1,101 @@
-defmodule Hammer.PlugTest.IP do
+defmodule Hammer.PlugTest do
   use ExUnit.Case, async: false
   use Plug.Test
   import Mock
 
-  @opts Hammer.Plug.init(id: "test", scale: 1_000, limit: 3, by: :ip)
+  describe "by ip address" do
+    @opts Hammer.Plug.init(id: "test", scale: 1_000, limit: 3, by: :ip)
 
-  test "passes the conn through on success" do
-    with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
-      # Create a test connection
-      conn = conn(:get, "/hello")
+    test "passes the conn through on success" do
+      with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
+        conn =
+          conn(:get, "/hello")
+          |> Hammer.Plug.call(@opts)
 
-      # Invoke the plug
-      conn = Hammer.Plug.call(conn, @opts)
+        assert conn.status == nil
+        assert called(Hammer.check_rate("test:127.0.0.1", 1_000, 3))
+      end
+    end
 
-      # Assert the response and status
-      assert conn.status == nil
-      assert called(Hammer.check_rate("test:127.0.0.1", 1_000, 3))
+    test "halts the conn and sends a 429 on failure" do
+      with_mock Hammer, check_rate: fn _a, _b, _c -> {:deny, 1} end do
+        conn =
+          conn(:get, "/hello")
+          |> Hammer.Plug.call(@opts)
+
+        assert conn.status == 429
+        assert conn.halted == true
+        assert called(Hammer.check_rate("test:127.0.0.1", 1_000, 3))
+      end
     end
   end
 
-  test "halts the conn and sends a 429 on failure" do
-    with_mock Hammer, check_rate: fn _a, _b, _c -> {:deny, 1} end do
-      # Create a test connection
-      conn = conn(:get, "/hello")
+  describe "by session" do
+    @opts Hammer.Plug.init(id: "test", scale: 1_000, limit: 3, by: {:session, :user_id})
 
-      # Invoke the plug
-      conn = Hammer.Plug.call(conn, @opts)
+    test "passes the conn through on success" do
+      with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
+        conn =
+          conn(:get, "/hello")
+          |> init_test_session(%{user_id: "123487"})
+          |> Hammer.Plug.call(@opts)
 
-      # Assert the response and status
-      assert conn.status == 429
-      assert conn.halted == true
-      assert called(Hammer.check_rate("test:127.0.0.1", 1_000, 3))
+        assert conn.status == nil
+        assert called(Hammer.check_rate("test:123487", 1_000, 3))
+      end
     end
-  end
-end
 
-defmodule Hammer.PlugTest.Session do
-  use ExUnit.Case, async: false
-  use Plug.Test
-  import Mock
+    test "halts the conn and sends a 429 on failure" do
+      with_mock Hammer, check_rate: fn _a, _b, _c -> {:deny, 1} end do
+        conn =
+          conn(:get, "/hello")
+          |> init_test_session(%{user_id: "123487"})
+          |> Hammer.Plug.call(@opts)
 
-  @opts Hammer.Plug.init(id: "test", scale: 1_000, limit: 3, by: {:session, :user_id})
-
-  test "passes the conn through on success" do
-    with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
-      # Create a test connection
-      conn =
-        conn(:get, "/hello")
-        |> init_test_session(%{user_id: "123487"})
-
-      # Invoke the plug
-      conn = Hammer.Plug.call(conn, @opts)
-
-      # Assert the response and status
-      assert conn.status == nil
-      assert called(Hammer.check_rate("test:123487", 1_000, 3))
+        assert conn.status == 429
+        assert conn.halted == true
+        assert called(Hammer.check_rate("test:123487", 1_000, 3))
+      end
     end
   end
 
-  test "halts the conn and sends a 429 on failure" do
-    with_mock Hammer, check_rate: fn _a, _b, _c -> {:deny, 1} end do
-      # Create a test connection
-      conn =
-        conn(:get, "/hello")
-        |> init_test_session(%{user_id: "123487"})
-
-      # Invoke the plug
-      conn = Hammer.Plug.call(conn, @opts)
-
-      # Assert the response and status
-      assert conn.status == 429
-      assert conn.halted == true
-      assert called(Hammer.check_rate("test:123487", 1_000, 3))
+  describe "session, with function" do
+    defmodule Foo do
+      def user_id(user) do
+        user.id
+      end
     end
-  end
-end
 
-defmodule Foo do
-  def user_id(user) do
-    user.id
-  end
-end
+    @opts Hammer.Plug.init(
+            id: "test",
+            scale: 1_000,
+            limit: 3,
+            by: {:session, :user, &Foo.user_id/1}
+          )
 
-defmodule Hammer.PlugTest.Session.Func do
-  use ExUnit.Case, async: false
-  use Plug.Test
-  import Mock
+    test "passes the conn through on success" do
+      with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
+        conn =
+          conn(:get, "/hello")
+          |> init_test_session(%{user: %{id: "123487"}})
+          |> Hammer.Plug.call(@opts)
 
-  @opts Hammer.Plug.init(
-          id: "test",
-          scale: 1_000,
-          limit: 3,
-          by: {:session, :user, &Foo.user_id/1}
-        )
-
-  test "passes the conn through on success" do
-    with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
-      # Create a test connection
-      conn =
-        conn(:get, "/hello")
-        |> init_test_session(%{user: %{id: "123487"}})
-
-      # Invoke the plug
-      conn = Hammer.Plug.call(conn, @opts)
-
-      # Assert the response and status
-      assert conn.status == nil
-      assert called(Hammer.check_rate("test:123487", 1_000, 3))
+        assert conn.status == nil
+        assert called(Hammer.check_rate("test:123487", 1_000, 3))
+      end
     end
-  end
 
-  test "halts the conn and sends a 429 on failure" do
-    with_mock Hammer, check_rate: fn _a, _b, _c -> {:deny, 1} end do
-      # Create a test connection
-      conn =
-        conn(:get, "/hello")
-        |> init_test_session(%{user: %{id: "123487"}})
+    test "halts the conn and sends a 429 on failure" do
+      with_mock Hammer, check_rate: fn _a, _b, _c -> {:deny, 1} end do
+        conn =
+          conn(:get, "/hello")
+          |> init_test_session(%{user: %{id: "123487"}})
+          |> Hammer.Plug.call(@opts)
 
-      # Invoke the plug
-      conn = Hammer.Plug.call(conn, @opts)
-
-      # Assert the response and status
-      assert conn.status == 429
-      assert conn.halted == true
-      assert called(Hammer.check_rate("test:123487", 1_000, 3))
+        assert conn.status == 429
+        assert conn.halted == true
+        assert called(Hammer.check_rate("test:123487", 1_000, 3))
+      end
     end
   end
 end
