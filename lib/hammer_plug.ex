@@ -11,7 +11,7 @@ defmodule Hammer.Plug do
     id_prefix = Keyword.get(opts, :id)
 
     if id_prefix == nil do
-      raise "Hammer.Plug: no id prefix specified"
+      raise Hammer.Plug.IdPrefixError
     end
 
     scale = Keyword.get(opts, :scale, 60_000)
@@ -40,8 +40,7 @@ defmodule Hammer.Plug do
             do_check(conn, id_prefix, nil, scale, limit, on_deny_handler)
 
           :raise ->
-            by_string = by_to_string(by)
-            raise "Hammer.Plug: request-id value is nil, by: #{by_string}"
+            raise Hammer.Plug.NilError
 
           :pass ->
             # Skip check
@@ -72,7 +71,15 @@ defmodule Hammer.Plug do
         get_session(conn, key)
 
       {:session, key, func} ->
-        get_session(conn, key) |> func.()
+        val = get_session(conn, key)
+
+        case val do
+          nil ->
+            nil
+
+          other ->
+            func.(other)
+        end
     end
   end
 
@@ -88,14 +95,6 @@ defmodule Hammer.Plug do
     end
   end
 
-  defp by_to_string(by) do
-    case by do
-      a when is_atom(a) -> to_string(a)
-      {:session, key} -> "{:session, #{key}}"
-      {:session, key, _func} -> "{:session, #{key}, &fn}"
-    end
-  end
-
   defp is_valid_method(by) do
     case by do
       :ip -> true
@@ -104,4 +103,12 @@ defmodule Hammer.Plug do
       _ -> false
     end
   end
+end
+
+defmodule Hammer.Plug.NilError do
+  defexception message: "Request identifier value is nil"
+end
+
+defmodule Hammer.Plug.IdPrefixError do
+  defexception message: "No id-prefix supplied"
 end
