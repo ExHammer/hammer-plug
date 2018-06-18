@@ -8,14 +8,13 @@ defmodule Hammer.Plug do
   def init(opts), do: opts
 
   def call(conn, opts) do
-    id_prefix = Keyword.get(opts, :id)
+    rate_limit_spec = Keyword.get(opts, :rate_limit)
 
-    if id_prefix == nil do
-      raise Hammer.Plug.IdPrefixError
+    if rate_limit_spec == nil do
+      raise Hammer.Plug.NoRateLimitError
     end
 
-    scale = Keyword.get(opts, :scale, 60_000)
-    limit = Keyword.get(opts, :limit, 60)
+    {id_prefix, scale, limit} = rate_limit_spec
     by = Keyword.get(opts, :by, :ip)
     when_nil = Keyword.get(opts, :when_nil, :use_nil)
 
@@ -106,9 +105,9 @@ defmodule Hammer.Plug do
 end
 
 defmodule Hammer.Plug.NilError do
-  defexception message: "Request identifier value is nil"
+  defexception message: "Request identifier value is nil, and :on_nil option set to :raise"
 end
 
-defmodule Hammer.Plug.IdPrefixError do
-  defexception message: "No id-prefix supplied"
+defmodule Hammer.Plug.NoRateLimitError do
+  defexception message: "Must specify a :rate_limit"
 end

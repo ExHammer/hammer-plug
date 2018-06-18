@@ -21,7 +21,7 @@ defmodule Hammer.PlugTest do
   Application.start(:plug)
 
   describe "by ip address" do
-    @opts Hammer.Plug.init(id: "test", scale: 1_000, limit: 3, by: :ip)
+    @opts Hammer.Plug.init(rate_limit: {"test", 1_000, 3}, by: :ip)
 
     test "passes the conn through on success" do
       with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
@@ -49,9 +49,7 @@ defmodule Hammer.PlugTest do
 
   describe "with custom on_deny handler" do
     @opts Hammer.Plug.init(
-            id: "test",
-            scale: 1_000,
-            limit: 3,
+            rate_limit: {"test", 1_000, 3},
             by: :ip,
             on_deny: &Helpers.on_deny/2
           )
@@ -83,9 +81,7 @@ defmodule Hammer.PlugTest do
 
   describe "by session" do
     @opts Hammer.Plug.init(
-            id: "test",
-            scale: 1_000,
-            limit: 3,
+            rate_limit: {"test", 1_000, 3},
             by: {:session, :user_id}
           )
 
@@ -117,9 +113,7 @@ defmodule Hammer.PlugTest do
 
   describe "session, with function" do
     @opts Hammer.Plug.init(
-            id: "test",
-            scale: 1_000,
-            limit: 3,
+            rate_limit: {"test", 1_000, 3},
             by: {:session, :user, &Helpers.user_id/1}
           )
 
@@ -151,9 +145,7 @@ defmodule Hammer.PlugTest do
 
   describe "session, when_nil: :use_nil" do
     @opts Hammer.Plug.init(
-            id: "test",
-            scale: 1_000,
-            limit: 3,
+            rate_limit: {"test", 1_000, 3},
             by: {:session, :user, &Helpers.user_id/1},
             when_nil: :use_nil
           )
@@ -186,9 +178,7 @@ defmodule Hammer.PlugTest do
 
   describe "session, when_nil: :pass" do
     @opts Hammer.Plug.init(
-            id: "test",
-            scale: 1_000,
-            limit: 3,
+            rate_limit: {"test", 1_000, 3},
             by: {:session, :user, &Helpers.user_id/1},
             when_nil: :pass
           )
@@ -209,9 +199,7 @@ defmodule Hammer.PlugTest do
 
   describe "session, when_nil: :raise" do
     @opts Hammer.Plug.init(
-            id: "test",
-            scale: 1_000,
-            limit: 3,
+            rate_limit: {"test", 1_000, 3},
             by: {:session, :user, &Helpers.user_id/1},
             when_nil: :raise
           )
@@ -233,12 +221,8 @@ defmodule Hammer.PlugTest do
     end
   end
 
-  describe "when no id prefix is supplied" do
-    @opts Hammer.Plug.init(
-            scale: 1_000,
-            limit: 3,
-            by: :ip
-          )
+  describe "when no rate_limit is supplied" do
+    @opts Hammer.Plug.init(by: :ip)
 
     test "should raise an exception" do
       with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
@@ -246,7 +230,7 @@ defmodule Hammer.PlugTest do
           conn(:get, "/hello")
           |> init_test_session(%{})
 
-        assert_raise Hammer.Plug.IdPrefixError, fn ->
+        assert_raise Hammer.Plug.NoRateLimitError, fn ->
           Hammer.Plug.call(conn, @opts)
         end
 
