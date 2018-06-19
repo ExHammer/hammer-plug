@@ -1,6 +1,112 @@
 defmodule Hammer.Plug do
   @moduledoc """
-  Documentation for Hammer.Plug.
+  A plug which rate-limits requests, using the Hammer library.
+
+  ## Usage example:
+
+      # Minimal
+      plug Hammer.Plug, [
+        rate_limit: {"video:upload", 60_000, 10},
+        by: {:session, :user_id}
+      ] when action == :upload_video_file
+
+      # Using all options
+      plug Hammer.Plug, [
+        rate_limit: {"chat:message:post", 60_000, 20},
+        by: {:session, :user, &Helpers.get_user_id/2},
+        when_nil: :raise,
+        on_deny: &Helpers.handle_deny/2
+      ] when action == :post_chat_message
+
+
+  ## Options
+
+  ### :rate_limit (`{prefix::string, time_scale::int, limit::int}`)
+
+  Required. A tuple of three elements, a string prefix that identifies
+  this particular rate-limiter, an integer time-scale in milliseconds, and
+  an integer limit. These are the same as the first three arguments to the
+  `check_rate` function in the
+  [Hammer](https://hexdocs.pm/hammer/Hammer.html#check_rate/3) module.
+
+  Requests from a single client (as identified by the `:by` parameter) will
+  be rate-limited to the specified limit within the specified timeframe.
+
+  By default, requests which are over the limit will be halted, and a
+  `429 Too Many Requests` response will be sent.
+
+  #### Examples
+
+      rate_limit: {"chat:message:post", 20_000, 5}
+
+      rate_limit: {"login", 60_000, 10}
+
+
+  ### :by
+
+  The method by which to choose a "unique" identifier for the request client.
+  Optional, defaults to `:ip`.
+
+  Valid options:
+
+  - `:ip` -> Use the IP address of the request
+  - `{:session, key}` -> where `key` is an atom, choose this value from the
+    session
+  - `{:session, key, func}` -> where `key` is an atom and `func` is a
+     function of the form `&SomeModule.some_function/1`, choose the value
+     from the session, and then apply the supplied function, then use the
+     return value as the identifier
+
+  #### Examples
+
+      by: :ip
+
+      by: {:session, :user_id}
+
+      by: {:session, :user, &Helpers.get_user_id/1} # where `get_user_id/1` is
+      equivalent to `fn (u) -> u.id end`
+
+  ### :when_nil
+
+  Strategy to use when the request identifier value (as chosen by the `:by`
+  parameter), is `nil`.
+  Optional, defaults to `:use_nil`
+
+  The most likely scenario is that when using a `:by` strategy like
+  `{:session, :user_id}`, the `:user_id` value might actually be `nil`, for
+  requests coming from clients that are not logged-in, for example.
+
+  In general, it is recommended that you only use the `:session` strategy
+  on routes that you know will only be available to clients which have the
+  appropriate session established.
+
+  Valid options:
+
+  - `:use_nil` -> Use the nil value. Not very useful, as this would mean that
+    one rate-limiter would apply to all such requests
+  - `:pass` -> skip the rate-limit check, and allow the request to proceed
+  - `:raise` -> raise a `Hammer.Plug.NilError` exception
+
+  #### Examples
+
+      when_nil: :pass
+
+
+  ### :on_deny
+  A plug function to be invoked when a request is deemed to have exceeded the
+  rate-limit.
+  Optional, defaults to sending a `429 Too Many Requests` response and halting
+  the connection.
+
+  #### Examples
+
+     on_deny: &Helpers.handle_rate_limit_deny/2
+     # where `handle_rate_limit_deny/2` is something like:
+     #
+     #     def handle_rate_limit_deny(conn, _opts) do
+     #       ...
+     #     end
+
   """
   import Plug.Conn
 
