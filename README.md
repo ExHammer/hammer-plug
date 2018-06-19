@@ -21,6 +21,8 @@ def upload_video_file(conn, _opts) do
 end
 ```
 
+## Documentation
+
 See the [Hammer documentation page](https://hexdocs.pm/hammer) for more info on Hammer itself.
 
 See the [Hammer.Plug docs](https://hexdocs.pm/hammer_plug) for more info about this library and how to use it, specifically the [Hammer.Plug](https://hexdocs.pm/Hammer.Plug.html#content) module.
