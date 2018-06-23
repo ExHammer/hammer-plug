@@ -30,17 +30,13 @@ See the [Hammer.Plug docs](https://hexdocs.pm/hammer_plug) for more info about t
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `hammer_plug` to your list of dependencies in `mix.exs`:
+Hammer-Plug is avaliable [available in Hex](https://hex.pm/docs/publish), the package can be installed by adding `hammer_plug` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
   [
     {:hammer, "~> 5.0"}
-    {:hammer_plug, "~> 0.1.0"}
+    {:hammer_plug, "~> 1.0"}
   ]
 end
 ```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the
