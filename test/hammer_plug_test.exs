@@ -222,7 +222,7 @@ defmodule Hammer.PlugTest do
   end
 
   describe "when no rate_limit is supplied" do
-    @opts Hammer.Plug.init(by: :ip)
+    @opts [by: :ip]
 
     test "should raise an exception" do
       with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
@@ -231,7 +231,7 @@ defmodule Hammer.PlugTest do
           |> init_test_session(%{})
 
         assert_raise Hammer.Plug.NoRateLimitError, fn ->
-          Hammer.Plug.call(conn, @opts)
+          Hammer.Plug.init(@opts)
         end
 
         assert conn.status == nil

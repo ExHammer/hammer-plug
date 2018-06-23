@@ -111,16 +111,19 @@ defmodule Hammer.Plug do
   import Plug.Conn
 
   def init(), do: init([])
-  def init(opts), do: opts
 
-  def call(conn, opts) do
+  def init(opts) do
     rate_limit_spec = Keyword.get(opts, :rate_limit)
 
     if rate_limit_spec == nil do
       raise Hammer.Plug.NoRateLimitError
     end
 
-    {id_prefix, scale, limit} = rate_limit_spec
+    opts
+  end
+
+  def call(conn, opts) do
+    {id_prefix, scale, limit} = Keyword.get(opts, :rate_limit)
     by = Keyword.get(opts, :by, :ip)
     when_nil = Keyword.get(opts, :when_nil, :use_nil)
 
