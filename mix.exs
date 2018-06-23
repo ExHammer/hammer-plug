@@ -4,7 +4,7 @@ defmodule Hammer.Plug.MixProject do
   def project do
     [
       app: :hammer_plug,
-      description: "A plug to apply rate-limiting, using Hammer."
+      description: "A plug to apply rate-limiting, using Hammer.",
       package: [
         name: :hammer_plug,
         maintainers: ["Shane Kilkelly (shane@kilkelly.me)"],
