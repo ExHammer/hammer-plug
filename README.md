@@ -35,7 +35,7 @@ Hammer-Plug is avaliable [available in Hex](https://hex.pm/docs/publish), the pa
 ```elixir
 def deps do
   [
-    {:hammer, "~> 5.0"}
+    {:hammer, "~> 5.0"},
     {:hammer_plug, "~> 1.0"}
   ]
 end
