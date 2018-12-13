@@ -13,7 +13,7 @@ defmodule Hammer.Plug.MixProject do
       ],
       source_url: "https://github.com/ExHammer/hammer-plug",
       homepage_url: "https://github.com/ExHammer/hammer-plug",
-      version: "1.0.0",
+      version: "2.0.0",
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -35,7 +35,7 @@ defmodule Hammer.Plug.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:hammer, "~> 5.0"},
+      {:hammer, "~> 6.0"},
       {:plug, "~> 1.0"},
       {:ex_doc, "~> 0.16", only: :dev},
       {:mock, "~> 0.2.0", only: :test}
