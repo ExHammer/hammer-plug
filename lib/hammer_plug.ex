@@ -100,12 +100,12 @@ defmodule Hammer.Plug do
 
   #### Examples
 
-     on_deny: &Helpers.handle_rate_limit_deny/2
-     # where `handle_rate_limit_deny/2` is something like:
-     #
-     #     def handle_rate_limit_deny(conn, _opts) do
-     #       ...
-     #     end
+      on_deny: &Helpers.handle_rate_limit_deny/2
+      # where `handle_rate_limit_deny/2` is something like:
+      #
+      #     def handle_rate_limit_deny(conn, _opts) do
+      #       ...
+      #     end
 
   """
   import Plug.Conn
