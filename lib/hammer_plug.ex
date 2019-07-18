@@ -56,6 +56,9 @@ defmodule Hammer.Plug do
      function of the form `&SomeModule.some_function/1`, choose the value
      from the session, and then apply the supplied function, then use the
      return value as the identifier
+  - `{:conn, func}` -> where `func` is a function of the form
+     `&SomeModule.some_function/1` which returns a value from the conn to
+     be used as the identifier
 
   #### Examples
 
@@ -65,6 +68,9 @@ defmodule Hammer.Plug do
 
       by: {:session, :user, &Helpers.get_user_id/1} # where `get_user_id/1` is
       equivalent to `fn (u) -> u.id end`
+
+      by: {:conn, &Helpers.get_email_from_request/1} # where email_from_request/1
+      is equivalent to `fn (conn) -> conn.params["email"] end`
 
   ### :when_nil
 
@@ -188,6 +194,9 @@ defmodule Hammer.Plug do
           other ->
             func.(other)
         end
+
+      {:conn, func} ->
+        func.(conn)
     end
   end
 
@@ -207,7 +216,8 @@ defmodule Hammer.Plug do
     case by do
       :ip -> true
       {:session, key} when is_atom(key) -> true
-      {:session, key, func} when is_atom(key) and is_function(func) -> true
+      {:session, key, func} when is_atom(key) and is_function(func, 1) -> true
+      {:conn, func} when is_function(func, 1) -> true
       _ -> false
     end
   end
