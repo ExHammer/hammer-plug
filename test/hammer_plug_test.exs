@@ -5,6 +5,10 @@ defmodule Helpers do
     user.id
   end
 
+  def email_param(conn) do
+    conn.params["email"]
+  end
+
   def on_deny(conn, _opts) do
     conn
     |> put_resp_header("x-hammer-test", "yes")
@@ -139,6 +143,38 @@ defmodule Hammer.PlugTest do
         assert conn.status == 429
         assert conn.halted == true
         assert called(Hammer.check_rate("test:123487", 1_000, 3))
+      end
+    end
+  end
+
+  describe "conn with function" do
+    @opts Hammer.Plug.init(
+            rate_limit: {"test", 1_000, 3},
+            by: {:conn, &Helpers.email_param/1}
+          )
+
+    test "passes the conn through on success" do
+      with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
+        conn =
+          conn(:get, "/hello")
+          |> Map.put(:params, %{"email" => "bob@example.com"})
+          |> Hammer.Plug.call(@opts)
+
+        assert conn.status == nil
+        assert called(Hammer.check_rate("test:bob@example.com", 1_000, 3))
+      end
+    end
+
+    test "halts the conn and sends a 429 on failure" do
+      with_mock Hammer, check_rate: fn _a, _b, _c -> {:deny, 1} end do
+        conn =
+          conn(:get, "/hello")
+          |> Map.put(:params, %{"email" => "bob@example.com"})
+          |> Hammer.Plug.call(@opts)
+
+        assert conn.status == 429
+        assert conn.halted == true
+        assert called(Hammer.check_rate("test:bob@example.com", 1_000, 3))
       end
     end
   end

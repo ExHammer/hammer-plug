@@ -38,7 +38,7 @@ defmodule Hammer.Plug.MixProject do
       {:hammer, "~> 6.0"},
       {:plug, "~> 1.0"},
       {:ex_doc, "~> 0.16", only: :dev},
-      {:mock, "~> 0.2.0", only: :test}
+      {:mock, "~> 0.3.0", only: :test}
     ]
   end
 end
