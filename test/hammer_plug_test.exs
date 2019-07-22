@@ -15,6 +15,10 @@ defmodule Helpers do
     |> send_resp(404, "Not Found")
     |> halt()
   end
+
+  def current_user(conn) do
+    conn.assigns[:current_user]
+  end
 end
 
 defmodule Hammer.PlugTest do
@@ -273,6 +277,143 @@ defmodule Hammer.PlugTest do
         assert conn.status == nil
         assert !called(Hammer.check_rate("test:", 1_000, 3))
         assert !called(Hammer.check_rate(:_, :_, :_))
+      end
+    end
+  end
+
+  describe "deleted_when: {:status, list}" do
+    @opts Hammer.Plug.init(
+            rate_limit: {"test", 1_000, 3},
+            by: :ip,
+            delete_when: {:status, [200, 201]}
+          )
+
+    test "when response status is in list it deletes the bucket" do
+      with_mock(Hammer,
+        check_rate: fn _a, _b, _c -> {:allow, 1} end,
+        delete_buckets: fn _a -> :ok end
+      ) do
+        conn(:get, "/hello")
+        |> Hammer.Plug.call(@opts)
+        |> send_resp(201, "")
+
+        assert called(Hammer.delete_buckets("test:127.0.0.1"))
+      end
+    end
+
+    test "when response status is not in the list it keeps the bucket" do
+      with_mock(Hammer,
+        check_rate: fn _a, _b, _c -> {:allow, 1} end,
+        delete_buckets: fn _a -> :ok end
+      ) do
+        conn(:get, "/hello")
+        |> Hammer.Plug.call(@opts)
+        |> send_resp(401, "")
+
+        refute called(Hammer.delete_buckets("test:127.0.0.1"))
+      end
+    end
+  end
+
+  describe "deleted_when: {:status, range}" do
+    @opts Hammer.Plug.init(
+            rate_limit: {"test", 1_000, 3},
+            by: :ip,
+            delete_when: {:status, 200..201}
+          )
+
+    test "when response status is in range it deletes the bucket" do
+      with_mock(Hammer,
+        check_rate: fn _a, _b, _c -> {:allow, 1} end,
+        delete_buckets: fn _a -> :ok end
+      ) do
+        conn(:get, "/hello")
+        |> Hammer.Plug.call(@opts)
+        |> send_resp(200, "")
+
+        assert called(Hammer.delete_buckets("test:127.0.0.1"))
+      end
+    end
+
+    test "when response status is not in the range it keeps the bucket" do
+      with_mock(Hammer,
+        check_rate: fn _a, _b, _c -> {:allow, 1} end,
+        delete_buckets: fn _a -> :ok end
+      ) do
+        conn(:get, "/hello")
+        |> Hammer.Plug.call(@opts)
+        |> send_resp(401, "")
+
+        refute called(Hammer.delete_buckets("test:127.0.0.1"))
+      end
+    end
+  end
+
+  describe "deleted_when: {:status, status}" do
+    @opts Hammer.Plug.init(
+            rate_limit: {"test", 1_000, 3},
+            by: :ip,
+            delete_when: {:status, 200}
+          )
+
+    test "when response status matches it deletes the bucket" do
+      with_mock(Hammer,
+        check_rate: fn _a, _b, _c -> {:allow, 1} end,
+        delete_buckets: fn _a -> :ok end
+      ) do
+        conn(:get, "/hello")
+        |> Hammer.Plug.call(@opts)
+        |> send_resp(200, "")
+
+        assert called(Hammer.delete_buckets("test:127.0.0.1"))
+      end
+    end
+
+    test "when response status does not match it keeps the bucket" do
+      with_mock(Hammer,
+        check_rate: fn _a, _b, _c -> {:allow, 1} end,
+        delete_buckets: fn _a -> :ok end
+      ) do
+        conn(:get, "/hello")
+        |> Hammer.Plug.call(@opts)
+        |> send_resp(401, "")
+
+        refute called(Hammer.delete_buckets("test:127.0.0.1"))
+      end
+    end
+  end
+
+  describe "deleted_when: {:conn, function}" do
+    @opts Hammer.Plug.init(
+            rate_limit: {"test", 1_000, 3},
+            by: :ip,
+            delete_when: {:conn, &Helpers.current_user/1}
+          )
+
+    test "when function returns a truthy value it deletes the bucket" do
+      with_mock(Hammer,
+        check_rate: fn _a, _b, _c -> {:allow, 1} end,
+        delete_buckets: fn _a -> :ok end
+      ) do
+        conn(:get, "/hello")
+        |> Hammer.Plug.call(@opts)
+        |> assign(:current_user, "bob")
+        |> send_resp(200, "")
+
+        assert called(Hammer.delete_buckets("test:127.0.0.1"))
+      end
+    end
+
+    test "when function returns falsey value it keeps the bucket" do
+      with_mock(Hammer,
+        check_rate: fn _a, _b, _c -> {:allow, 1} end,
+        delete_buckets: fn _a -> :ok end
+      ) do
+        conn(:get, "/hello")
+        |> Hammer.Plug.call(@opts)
+        |> send_resp(401, "")
+
+        refute called(Hammer.delete_buckets("test:127.0.0.1"))
       end
     end
   end

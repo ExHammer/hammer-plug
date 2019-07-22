@@ -132,6 +132,7 @@ defmodule Hammer.Plug do
     {id_prefix, scale, limit} = Keyword.get(opts, :rate_limit)
     by = Keyword.get(opts, :by, :ip)
     when_nil = Keyword.get(opts, :when_nil, :use_nil)
+    delete_when = Keyword.get(opts, :delete_when)
 
     on_deny_handler =
       Keyword.get(
@@ -151,7 +152,7 @@ defmodule Hammer.Plug do
         case when_nil do
           # Proceed
           :use_nil ->
-            do_rate_limit_check(conn, id_prefix, nil, scale, limit, on_deny_handler)
+            do_rate_limit_check(conn, id_prefix, nil, scale, limit, on_deny_handler, delete_when)
 
           :raise ->
             raise Hammer.Plug.NilError
@@ -162,7 +163,7 @@ defmodule Hammer.Plug do
         end
 
       id ->
-        do_rate_limit_check(conn, id_prefix, id, scale, limit, on_deny_handler)
+        do_rate_limit_check(conn, id_prefix, id, scale, limit, on_deny_handler, delete_when)
     end
   end
 
@@ -200,20 +201,60 @@ defmodule Hammer.Plug do
     end
   end
 
-  defp do_rate_limit_check(conn, id_prefix, request_id, scale, limit, on_deny_handler) do
+  defp do_rate_limit_check(
+         conn,
+         id_prefix,
+         request_id,
+         scale,
+         limit,
+         on_deny_handler,
+         delete_when
+       ) do
     full_id = "#{id_prefix}:#{request_id}"
 
     case Hammer.check_rate(full_id, scale, limit) do
       {:allow, _n} ->
-        conn
+        put_delete_condition(conn, full_id, delete_when)
 
       {:deny, _n} ->
-        on_deny_handler.(conn, [])
+        conn
+        |> put_delete_condition(full_id, delete_when)
+        |> on_deny_handler.([])
 
       {:error, _reason} ->
-        on_deny_handler.(conn, [])
+        conn
+        |> put_delete_condition(full_id, delete_when)
+        |> on_deny_handler.([])
     end
   end
+
+  defp put_delete_condition(conn, _full_id, nil), do: conn
+
+  defp put_delete_condition(conn, full_id, condition) do
+    register_before_send(conn, &delete_when(&1, full_id, condition))
+  end
+
+  defp delete_when(conn, full_id, {:status, %Range{} = statuses}) do
+    if Enum.member?(statuses, conn.status), do: Hammer.delete_buckets(full_id)
+    conn
+  end
+
+  defp delete_when(conn, full_id, {:status, statuses}) when is_list(statuses) do
+    if conn.status in statuses, do: Hammer.delete_buckets(full_id)
+    conn
+  end
+
+  defp delete_when(%{status: status} = conn, full_id, {:status, status}) do
+    Hammer.delete_buckets(full_id)
+    conn
+  end
+
+  defp delete_when(conn, full_id, {:conn, func}) do
+    if func.(conn), do: Hammer.delete_buckets(full_id)
+    conn
+  end
+
+  defp delete_when(conn, _full_id, _condition), do: conn
 
   defp is_valid_method(by) do
     case by do
