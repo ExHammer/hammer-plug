@@ -166,8 +166,11 @@ defmodule Hammer.Plug do
     end
   end
 
-  def default_on_deny_handler(conn, _opts) do
+  def default_on_deny_handler(conn, opts) do
+    scale_ms = Keyword.get(opts, :scale)
+
     conn
+    |> put_resp_header("retry-after", scale_ms |> div(1000) |> Integer.to_string())
     |> send_resp(429, "Too Many Requests")
     |> halt()
   end
@@ -208,7 +211,7 @@ defmodule Hammer.Plug do
         conn
 
       {:deny, _n} ->
-        on_deny_handler.(conn, [])
+        on_deny_handler.(conn, scale: scale, limit: limit)
     end
   end
 
