@@ -209,6 +209,9 @@ defmodule Hammer.Plug do
 
       {:deny, _n} ->
         on_deny_handler.(conn, [])
+
+      {:error, _reason} ->
+        on_deny_handler.(conn, [])
     end
   end
 
