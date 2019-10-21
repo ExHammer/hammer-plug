@@ -46,6 +46,7 @@ defmodule Hammer.PlugTest do
 
         assert conn.status == 429
         assert conn.halted == true
+        assert get_resp_header(conn, "retry-after") == ["1"]
         assert called(Hammer.check_rate("test:127.0.0.1", 1_000, 3))
       end
     end
