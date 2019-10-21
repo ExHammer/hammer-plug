@@ -13,7 +13,7 @@ defmodule Hammer.Plug.MixProject do
       ],
       source_url: "https://github.com/ExHammer/hammer-plug",
       homepage_url: "https://github.com/ExHammer/hammer-plug",
-      version: "2.1.0",
+      version: "2.1.1",
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
