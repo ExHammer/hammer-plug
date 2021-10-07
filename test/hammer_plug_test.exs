@@ -276,4 +276,85 @@ defmodule Hammer.PlugTest do
       end
     end
   end
+
+  describe "on_error, :pass" do
+    @opts [
+      on_error: :pass,
+      rate_limit: {"test", 1_000, 3}
+    ]
+
+    test "passes on hammer error" do
+      with_mock Hammer, check_rate: fn _a, _b, _c -> {:error, :redis_error} end do
+        conn =
+          conn(:get, "/hello")
+          |> init_test_session(%{})
+          |> Hammer.Plug.call(@opts)
+
+        assert conn.status == nil
+        assert conn.halted == false
+      end
+    end
+  end
+
+  describe "on_error, :raise" do
+    @opts [
+      on_error: :raise,
+      rate_limit: {"test", 1_000, 3}
+    ]
+
+    test "raises on hammer error" do
+      with_mock Hammer, check_rate: fn _a, _b, _c -> {:error, :redis_error} end do
+        conn =
+          conn(:get, "/hello")
+          |> init_test_session(%{})
+
+        assert_raise Hammer.Plug.HammerError, fn ->
+          Hammer.Plug.call(conn, @opts)
+        end
+
+        assert conn.status == nil
+        assert called(Hammer.check_rate(:_, :_, :_))
+      end
+    end
+  end
+
+  describe "on_error, :deny" do
+    @opts [
+      on_error: :deny,
+      rate_limit: {"test", 1_000, 3}
+    ]
+
+    test "denies on hammer error" do
+      with_mock Hammer, check_rate: fn _a, _b, _c -> {:error, :redis_error} end do
+        conn =
+          conn(:get, "/hello")
+          |> Hammer.Plug.call(@opts)
+          |> init_test_session(%{})
+
+        assert conn.status == 429
+        assert conn.halted == true
+        assert called(Hammer.check_rate("test:127.0.0.1", 1_000, 3))
+      end
+    end
+  end
+
+  describe "on_error with invalid option" do
+    @opts [
+      on_error: :cowbell,
+      rate_limit: {"test", 1_000, 3}
+    ]
+
+    test "denies request" do
+      with_mock Hammer, check_rate: fn _a, _b, _c -> {:error, :redis_error} end do
+        conn =
+          conn(:get, "/hello")
+          |> Hammer.Plug.call(@opts)
+          |> init_test_session(%{})
+
+        assert conn.status == 429
+        assert conn.halted == true
+        assert called(Hammer.check_rate("test:127.0.0.1", 1_000, 3))
+      end
+    end
+  end
 end

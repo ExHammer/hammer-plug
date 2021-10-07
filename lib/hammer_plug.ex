@@ -16,6 +16,7 @@ defmodule Hammer.Plug do
         by: {:session, :user, &Helpers.get_user_id/2},
         when_nil: :raise,
         on_deny: &Helpers.handle_deny/2
+        on_error: :pass
       ] when action == :post_chat_message
 
 
@@ -113,6 +114,26 @@ defmodule Hammer.Plug do
       #       ...
       #     end
 
+  ### :on_error
+
+  Configuration to handle an error returned from Redis/Hammers `check_rate`.
+  Optional, defaults to `:deny`. 
+
+  In the case of redis being down, or Hammer having some other error, the
+  `:on_error` setting is checked. If the option is set to `:deny`, (or
+  omitted). the request is rate-limited. Any unknown options will result in
+  the request being denied. Set to `:allow` to pass through requests.
+
+  Valid options:
+
+  - `:deny`  -> deny the request and return a rate limited error. This will 
+      use the same handler as `:on_deny`
+  - `:allow` -> allow the request to proceed
+  - `:raise` -> raise a `Hammer.Plug.HammerError` exception
+
+  #### Examples
+
+      on_error: :allow
   """
   import Plug.Conn
 
@@ -132,6 +153,7 @@ defmodule Hammer.Plug do
     {id_prefix, scale, limit} = Keyword.get(opts, :rate_limit)
     by = Keyword.get(opts, :by, :ip)
     when_nil = Keyword.get(opts, :when_nil, :use_nil)
+    on_error = Keyword.get(opts, :on_error, :deny)
 
     on_deny_handler =
       Keyword.get(
@@ -151,7 +173,7 @@ defmodule Hammer.Plug do
         case when_nil do
           # Proceed
           :use_nil ->
-            do_rate_limit_check(conn, id_prefix, nil, scale, limit, on_deny_handler)
+            do_rate_limit_check(conn, id_prefix, nil, scale, limit, on_error, on_deny_handler)
 
           :raise ->
             raise Hammer.Plug.NilError
@@ -162,7 +184,7 @@ defmodule Hammer.Plug do
         end
 
       id ->
-        do_rate_limit_check(conn, id_prefix, id, scale, limit, on_deny_handler)
+        do_rate_limit_check(conn, id_prefix, id, scale, limit, on_error, on_deny_handler)
     end
   end
 
@@ -200,7 +222,7 @@ defmodule Hammer.Plug do
     end
   end
 
-  defp do_rate_limit_check(conn, id_prefix, request_id, scale, limit, on_deny_handler) do
+  defp do_rate_limit_check(conn, id_prefix, request_id, scale, limit, on_error, on_deny_handler) do
     full_id = "#{id_prefix}:#{request_id}"
 
     case Hammer.check_rate(full_id, scale, limit) do
@@ -210,8 +232,20 @@ defmodule Hammer.Plug do
       {:deny, _n} ->
         on_deny_handler.(conn, [])
 
-      {:error, _reason} ->
-        on_deny_handler.(conn, [])
+      {:error, reason} ->
+        case on_error do
+          :deny ->
+            on_deny_handler.(conn, [])
+
+          :pass ->
+            conn
+
+          :raise ->
+            raise Hammer.Plug.HammerError, reason
+
+          _ ->
+            on_deny_handler.(conn, [])
+        end
     end
   end
 
@@ -232,4 +266,17 @@ end
 
 defmodule Hammer.Plug.NoRateLimitError do
   defexception message: "Must specify a :rate_limit"
+end
+
+defmodule Hammer.Plug.InvalidOnError do
+  defexception message: "Must specify a valid value for :on_error"
+end
+
+defmodule Hammer.Plug.HammerError do
+  defexception [:message]
+
+  @impl true
+  def exception(error) do
+    %Hammer.Plug.HammerError{message: "Error while rate-limiting, got: #{inspect(error)}"}
+  end
 end
