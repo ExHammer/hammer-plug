@@ -8,6 +8,7 @@
 - Adds credo and clean up based on rules
 - Update dependencies
 - Fix documentation
+
 ## 2.1.1 (2019-10-21)
 
 ### Changed
@@ -25,6 +26,6 @@
 
 ## 1.0.0 (2018-06-23)
 
-## Changed
+### Changed
 
 - Initial release
