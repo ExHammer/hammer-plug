@@ -24,3 +24,16 @@ end
 See the [Hammer documentation page](https://hexdocs.pm/hammer) for more info on Hammer itself.
 
 See the [Hammer.Plug docs](https://hexdocs.pm/hammer_plug) for more info about this library and how to use it, specifically the [Hammer.Plug](https://hexdocs.pm/hammer_plug/Hammer.Plug.html#content) module.
+
+## Installation
+
+Hammer-Plug is avaliable [available in Hex](https://hex.pm/docs/publish), the package can be installed by adding `hammer_plug` to your list of dependencies in `mix.exs`:
+
+```elixir
+def deps do
+  [
+    {:hammer, "~> 6.0"},
+    {:hammer_plug, "~> 3.0"}
+  ]
+end
+```
