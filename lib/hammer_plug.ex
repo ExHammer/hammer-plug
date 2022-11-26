@@ -116,7 +116,7 @@ defmodule Hammer.Plug do
   """
   import Plug.Conn
 
-  def init(), do: init([])
+  def init, do: init([])
 
   def init(opts) do
     rate_limit_spec = Keyword.get(opts, :rate_limit)

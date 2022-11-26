@@ -1,27 +1,29 @@
 defmodule Hammer.Plug.MixProject do
   use Mix.Project
 
+  @version "3.0.0"
+
   def project do
     [
       app: :hammer_plug,
       description: "A plug to apply rate-limiting, using Hammer.",
       package: [
         name: :hammer_plug,
-        maintainers: ["Shane Kilkelly (shane@kilkelly.me)"],
+        maintainers: ["Emmanuel Pinault", "Shane Kilkelly (shane@kilkelly.me)"],
         licenses: ["MIT"],
-        links: %{"GitHub" => "https://github.com/ExHammer/hammer-plug"}
+        links: %{
+          "GitHub" => "https://github.com/ExHammer/hammer-plug",
+          "Changelog" => "https://github.com/ExHammer/hammer-plug/blob/master/CHANGELOG.md"
+        }
       ],
       source_url: "https://github.com/ExHammer/hammer-plug",
       homepage_url: "https://github.com/ExHammer/hammer-plug",
-      version: "2.1.1",
-      elixir: "~> 1.6",
+      version: "3.0.0",
+      elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      docs: [
-        extras: ["README.md"],
-        main: "readme",
-        source_url: "https://github.com/elixir-plug/plug"
-      ]
+      docs: docs(),
+      test_coverage: [summary: [threshold: 75]]
     ]
   end
 
@@ -32,12 +34,25 @@ defmodule Hammer.Plug.MixProject do
     ]
   end
 
+  def docs do
+    [
+      main: "overview",
+      extras: ["guides/Overview.md", "CHANGELOG.md"],
+      source_ref: "v#{@version}",
+      source_url: "https://github.com/elixir-plug/plug",
+      main: "overview",
+      formatters: ["html", "epub"]
+    ]
+  end
+
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:credo, "~> 1.6", only: [:dev, :test]},
+      {:dialyxir, "~> 1.1", only: [:dev], runtime: false},
+      {:ex_doc, "~> 0.28", only: :dev},
       {:hammer, "~> 6.0"},
       {:plug, "~> 1.0"},
-      {:ex_doc, "~> 0.16", only: :dev},
       {:mock, "~> 0.3.0", only: :test}
     ]
   end
