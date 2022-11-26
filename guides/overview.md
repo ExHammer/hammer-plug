@@ -1,6 +1,4 @@
-# Hammer.Plug
-
-[![Build Status](https://travis-ci.org/ExHammer/hammer-plug.svg?branch=master)](https://travis-ci.org/ExHammer/hammer-plug)
+## A rate limiting plug for Hammer
 
 [Hammer](https://github.com/ExHammer/hammer) is a rate-limiter for Elixir, with pluggable storage backends.
 
@@ -26,7 +24,6 @@ end
 See the [Hammer documentation page](https://hexdocs.pm/hammer) for more info on Hammer itself.
 
 See the [Hammer.Plug docs](https://hexdocs.pm/hammer_plug) for more info about this library and how to use it, specifically the [Hammer.Plug](https://hexdocs.pm/hammer_plug/Hammer.Plug.html#content) module.
-
 
 ## Installation
 
