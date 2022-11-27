@@ -7,15 +7,6 @@ defmodule Hammer.Plug.MixProject do
     [
       app: :hammer_plug,
       description: "A plug to apply rate-limiting, using Hammer.",
-      package: [
-        name: :hammer_plug,
-        maintainers: ["Emmanuel Pinault", "Shane Kilkelly (shane@kilkelly.me)"],
-        licenses: ["MIT"],
-        links: %{
-          "GitHub" => "https://github.com/ExHammer/hammer-plug",
-          "Changelog" => "https://github.com/ExHammer/hammer-plug/blob/master/CHANGELOG.md"
-        }
-      ],
       source_url: "https://github.com/ExHammer/hammer-plug",
       homepage_url: "https://github.com/ExHammer/hammer-plug",
       version: "3.0.0",
@@ -23,6 +14,7 @@ defmodule Hammer.Plug.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       docs: docs(),
+      package: package(),
       test_coverage: [summary: [threshold: 75]]
     ]
   end
@@ -54,6 +46,18 @@ defmodule Hammer.Plug.MixProject do
       {:hammer, "~> 6.0"},
       {:plug, "~> 1.0"},
       {:mock, "~> 0.3.0", only: :test}
+    ]
+  end
+
+  defp package do
+    [
+      name: :hammer_plug,
+      maintainers: ["Emmanuel Pinault", "Shane Kilkelly (shane@kilkelly.me)"],
+      licenses: ["MIT"],
+      links: %{
+        "GitHub" => "https://github.com/ExHammer/hammer-plug",
+        "Changelog" => "https://github.com/ExHammer/hammer-plug/blob/master/CHANGELOG.md"
+      }
     ]
   end
 end

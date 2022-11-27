@@ -52,4 +52,4 @@ jobs:
 
       - run: mix credo --strict --format=oneline
 
-      - run: mix test --warnings-as-errors
+      - run: mix test --warnings-as-errors --cover
