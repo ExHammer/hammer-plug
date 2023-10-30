@@ -52,7 +52,7 @@ defmodule Hammer.Plug.MixProject do
   defp package do
     [
       name: :hammer_plug,
-      maintainers: ["Emmanuel Pinault", "Shane Kilkelly (shane@kilkelly.me)"],
+      maintainers: ["Emmanuel Pinault", "June Kelly"],
       licenses: ["MIT"],
       links: %{
         "GitHub" => "https://github.com/ExHammer/hammer-plug",
