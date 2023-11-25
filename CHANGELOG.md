@@ -1,5 +1,11 @@
 # Changelog
 
+### 4.0.0 (unreleased)
+
+### Changed
+
+- new hammer (TODO)
+
 ## 3.0.0 (2022-11-25)
 
 ### Changed
