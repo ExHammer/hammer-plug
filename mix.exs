@@ -1,7 +1,7 @@
 defmodule Hammer.Plug.MixProject do
   use Mix.Project
 
-  @version "3.0.0"
+  @version "4.0.0"
 
   def project do
     [
@@ -9,8 +9,8 @@ defmodule Hammer.Plug.MixProject do
       description: "A plug to apply rate-limiting, using Hammer.",
       source_url: "https://github.com/ExHammer/hammer-plug",
       homepage_url: "https://github.com/ExHammer/hammer-plug",
-      version: "3.0.0",
-      elixir: "~> 1.11",
+      version: @version,
+      elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       docs: docs(),
@@ -22,7 +22,7 @@ defmodule Hammer.Plug.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:plug]
+      extra_applications: [:logger]
     ]
   end
 
@@ -31,7 +31,7 @@ defmodule Hammer.Plug.MixProject do
       main: "overview",
       extras: ["guides/Overview.md", "CHANGELOG.md"],
       source_ref: "v#{@version}",
-      source_url: "https://github.com/elixir-plug/plug",
+      source_url: "https://github.com/ExHammer/hammer-plug",
       main: "overview",
       formatters: ["html", "epub"]
     ]
@@ -43,9 +43,8 @@ defmodule Hammer.Plug.MixProject do
       {:credo, "~> 1.6", only: [:dev, :test]},
       {:dialyxir, "~> 1.1", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.28", only: :dev},
-      {:hammer, "~> 6.0"},
-      {:plug, "~> 1.0"},
-      {:mock, "~> 0.3.0", only: :test}
+      {:hammer, github: "ruslandoga/hammer", branch: "new-ets"},
+      {:plug, "~> 1.0"}
     ]
   end
 

@@ -18,38 +18,38 @@ defmodule Helpers do
 end
 
 defmodule Hammer.PlugTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case
   use Plug.Test
-  import Mock
 
-  Application.start(:plug)
+  setup do
+    case :ets.info(:hammer_ets_buckets) do
+      :undefined -> :ok
+      _ -> :ets.delete(:hammer_ets_buckets)
+    end
+
+    start_supervised!({Hammer.Backend.ETS, cleanup_interval_ms: :timer.seconds(50)})
+
+    :ok
+  end
 
   describe "by ip address" do
     @opts Hammer.Plug.init(rate_limit: {"test", 1_000, 3}, by: :ip)
 
     test "passes the conn through on success" do
-      with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
-        conn =
-          :get
-          |> conn("/hello")
-          |> Hammer.Plug.call(@opts)
-
-        assert conn.status == nil
-        assert called(Hammer.check_rate("test:127.0.0.1", 1_000, 3))
-      end
+      conn = Hammer.Plug.call(conn(:get, "/hello"), @opts)
+      assert conn.status == nil
     end
 
     test "halts the conn and sends a 429 on failure" do
-      with_mock Hammer, check_rate: fn _a, _b, _c -> {:deny, 1} end do
-        conn =
-          :get
-          |> conn("/hello")
-          |> Hammer.Plug.call(@opts)
+      conn =
+        conn(:get, "/hello")
+        |> Hammer.Plug.call(@opts)
+        |> Hammer.Plug.call(@opts)
+        |> Hammer.Plug.call(@opts)
+        |> Hammer.Plug.call(@opts)
 
-        assert conn.status == 429
-        assert conn.halted == true
-        assert called(Hammer.check_rate("test:127.0.0.1", 1_000, 3))
-      end
+      assert conn.status == 429
+      assert conn.halted == true
     end
   end
 
@@ -61,29 +61,21 @@ defmodule Hammer.PlugTest do
           )
 
     test "passes the conn through on success" do
-      with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
-        conn =
-          :get
-          |> conn("/hello")
-          |> Hammer.Plug.call(@opts)
-
-        assert conn.status == nil
-        assert called(Hammer.check_rate("test:127.0.0.1", 1_000, 3))
-      end
+      conn = Hammer.Plug.call(conn(:get, "/hello"), @opts)
+      assert conn.status == nil
     end
 
     test "halts the conn and sends a 404 (non default) on failure" do
-      with_mock Hammer, check_rate: fn _a, _b, _c -> {:deny, 1} end do
-        conn =
-          :get
-          |> conn("/hello")
-          |> Hammer.Plug.call(@opts)
+      conn =
+        conn(:get, "/hello")
+        |> Hammer.Plug.call(@opts)
+        |> Hammer.Plug.call(@opts)
+        |> Hammer.Plug.call(@opts)
+        |> Hammer.Plug.call(@opts)
 
-        assert conn.status == 404
-        assert get_resp_header(conn, "x-hammer-test") == ["yes"]
-        assert conn.halted == true
-        assert called(Hammer.check_rate("test:127.0.0.1", 1_000, 3))
-      end
+      assert conn.status == 404
+      assert get_resp_header(conn, "x-hammer-test") == ["yes"]
+      assert conn.halted == true
     end
   end
 
@@ -94,30 +86,25 @@ defmodule Hammer.PlugTest do
           )
 
     test "passes the conn through on success" do
-      with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
-        conn =
-          :get
-          |> conn("/hello")
-          |> init_test_session(%{user_id: "123487"})
-          |> Hammer.Plug.call(@opts)
+      conn =
+        conn(:get, "/hello")
+        |> init_test_session(%{user_id: "123487"})
+        |> Hammer.Plug.call(@opts)
 
-        assert conn.status == nil
-        assert called(Hammer.check_rate("test:123487", 1_000, 3))
-      end
+      assert conn.status == nil
     end
 
     test "halts the conn and sends a 429 on failure" do
-      with_mock Hammer, check_rate: fn _a, _b, _c -> {:deny, 1} end do
-        conn =
-          :get
-          |> conn("/hello")
-          |> init_test_session(%{user_id: "123487"})
-          |> Hammer.Plug.call(@opts)
+      conn =
+        conn(:get, "/hello")
+        |> init_test_session(%{user_id: "123487"})
+        |> Hammer.Plug.call(@opts)
+        |> Hammer.Plug.call(@opts)
+        |> Hammer.Plug.call(@opts)
+        |> Hammer.Plug.call(@opts)
 
-        assert conn.status == 429
-        assert conn.halted == true
-        assert called(Hammer.check_rate("test:123487", 1_000, 3))
-      end
+      assert conn.status == 429
+      assert conn.halted == true
     end
   end
 
@@ -128,30 +115,25 @@ defmodule Hammer.PlugTest do
           )
 
     test "passes the conn through on success" do
-      with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
-        conn =
-          :get
-          |> conn("/hello")
-          |> init_test_session(%{user: %{id: "123487"}})
-          |> Hammer.Plug.call(@opts)
+      conn =
+        conn(:get, "/hello")
+        |> init_test_session(%{user: %{id: "123487"}})
+        |> Hammer.Plug.call(@opts)
 
-        assert conn.status == nil
-        assert called(Hammer.check_rate("test:123487", 1_000, 3))
-      end
+      assert conn.status == nil
     end
 
     test "halts the conn and sends a 429 on failure" do
-      with_mock Hammer, check_rate: fn _a, _b, _c -> {:deny, 1} end do
-        conn =
-          :get
-          |> conn("/hello")
-          |> init_test_session(%{user: %{id: "123487"}})
-          |> Hammer.Plug.call(@opts)
+      conn =
+        conn(:get, "/hello")
+        |> init_test_session(%{user: %{id: "123487"}})
+        |> Hammer.Plug.call(@opts)
+        |> Hammer.Plug.call(@opts)
+        |> Hammer.Plug.call(@opts)
+        |> Hammer.Plug.call(@opts)
 
-        assert conn.status == 429
-        assert conn.halted == true
-        assert called(Hammer.check_rate("test:123487", 1_000, 3))
-      end
+      assert conn.status == 429
+      assert conn.halted == true
     end
   end
 
@@ -162,30 +144,25 @@ defmodule Hammer.PlugTest do
           )
 
     test "passes the conn through on success" do
-      with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
-        conn =
-          :get
-          |> conn("/hello")
-          |> Map.put(:params, %{"email" => "bob@example.com"})
-          |> Hammer.Plug.call(@opts)
+      conn =
+        conn(:get, "/hello")
+        |> Map.put(:params, %{"email" => "bob@example.com"})
+        |> Hammer.Plug.call(@opts)
 
-        assert conn.status == nil
-        assert called(Hammer.check_rate("test:bob@example.com", 1_000, 3))
-      end
+      assert conn.status == nil
     end
 
     test "halts the conn and sends a 429 on failure" do
-      with_mock Hammer, check_rate: fn _a, _b, _c -> {:deny, 1} end do
-        conn =
-          :get
-          |> conn("/hello")
-          |> Map.put(:params, %{"email" => "bob@example.com"})
-          |> Hammer.Plug.call(@opts)
+      conn =
+        conn(:get, "/hello")
+        |> Map.put(:params, %{"email" => "bob@example.com"})
+        |> Hammer.Plug.call(@opts)
+        |> Hammer.Plug.call(@opts)
+        |> Hammer.Plug.call(@opts)
+        |> Hammer.Plug.call(@opts)
 
-        assert conn.status == 429
-        assert conn.halted == true
-        assert called(Hammer.check_rate("test:bob@example.com", 1_000, 3))
-      end
+      assert conn.status == 429
+      assert conn.halted == true
     end
   end
 
@@ -197,30 +174,25 @@ defmodule Hammer.PlugTest do
           )
 
     test "passes the conn through on success" do
-      with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
-        conn =
-          :get
-          |> conn("/hello")
-          |> init_test_session(%{})
-          |> Hammer.Plug.call(@opts)
+      conn =
+        conn(:get, "/hello")
+        |> init_test_session(%{})
+        |> Hammer.Plug.call(@opts)
 
-        assert conn.status == nil
-        assert called(Hammer.check_rate("test:", 1_000, 3))
-      end
+      assert conn.status == nil
     end
 
     test "halts the conn and sends a 429 on failure" do
-      with_mock Hammer, check_rate: fn _a, _b, _c -> {:deny, 1} end do
-        conn =
-          :get
-          |> conn("/hello")
-          |> init_test_session(%{})
-          |> Hammer.Plug.call(@opts)
+      conn =
+        conn(:get, "/hello")
+        |> init_test_session(%{})
+        |> Hammer.Plug.call(@opts)
+        |> Hammer.Plug.call(@opts)
+        |> Hammer.Plug.call(@opts)
+        |> Hammer.Plug.call(@opts)
 
-        assert conn.status == 429
-        assert conn.halted == true
-        assert called(Hammer.check_rate("test:", 1_000, 3))
-      end
+      assert conn.status == 429
+      assert conn.halted == true
     end
   end
 
@@ -232,17 +204,15 @@ defmodule Hammer.PlugTest do
           )
 
     test "doesn't call check_rate" do
-      with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
-        conn =
-          :get
-          |> conn("/hello")
-          |> init_test_session(%{})
-          |> Hammer.Plug.call(@opts)
+      conn =
+        conn(:get, "/hello")
+        |> init_test_session(%{})
+        |> Hammer.Plug.call(@opts)
+        |> Hammer.Plug.call(@opts)
+        |> Hammer.Plug.call(@opts)
+        |> Hammer.Plug.call(@opts)
 
-        assert conn.status == nil
-        assert !called(Hammer.check_rate("test:", 1_000, 3))
-        assert !called(Hammer.check_rate(:_, :_, :_))
-      end
+      assert conn.status == nil
     end
   end
 
@@ -253,20 +223,11 @@ defmodule Hammer.PlugTest do
             when_nil: :raise
           )
 
-    test "doesn't call check_rate" do
-      with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
-        conn =
-          :get
-          |> conn("/hello")
-          |> init_test_session(%{})
-
-        assert_raise Hammer.Plug.NilError, fn ->
-          Hammer.Plug.call(conn, @opts)
-        end
-
-        assert conn.status == nil
-        assert !called(Hammer.check_rate("test:", 1_000, 3))
-        assert !called(Hammer.check_rate(:_, :_, :_))
+    test "should raise an exception" do
+      assert_raise Hammer.Plug.NilError, fn ->
+        conn(:get, "/hello")
+        |> init_test_session(%{})
+        |> Hammer.Plug.call(@opts)
       end
     end
   end
@@ -275,19 +236,8 @@ defmodule Hammer.PlugTest do
     @opts [by: :ip]
 
     test "should raise an exception" do
-      with_mock Hammer, check_rate: fn _a, _b, _c -> {:allow, 1} end do
-        conn =
-          :get
-          |> conn("/hello")
-          |> init_test_session(%{})
-
-        assert_raise Hammer.Plug.NoRateLimitError, fn ->
-          Hammer.Plug.init(@opts)
-        end
-
-        assert conn.status == nil
-        assert !called(Hammer.check_rate("test:", 1_000, 3))
-        assert !called(Hammer.check_rate(:_, :_, :_))
+      assert_raise Hammer.Plug.NoRateLimitError, fn ->
+        Hammer.Plug.init(@opts)
       end
     end
   end

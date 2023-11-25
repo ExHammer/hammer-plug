@@ -114,10 +114,11 @@ defmodule Hammer.Plug do
       #     end
 
   """
+
+  @behaviour Plug
   import Plug.Conn
 
-  def init, do: init([])
-
+  @impl true
   def init(opts) do
     rate_limit_spec = Keyword.get(opts, :rate_limit)
 
@@ -128,6 +129,7 @@ defmodule Hammer.Plug do
     opts
   end
 
+  @impl true
   def call(conn, opts) do
     {id_prefix, scale, limit} = Keyword.get(opts, :rate_limit)
     by = Keyword.get(opts, :by, :ip)
@@ -200,6 +202,8 @@ defmodule Hammer.Plug do
     end
   end
 
+  require Logger
+
   defp do_rate_limit_check(conn, id_prefix, request_id, scale, limit, on_deny_handler) do
     full_id = "#{id_prefix}:#{request_id}"
 
@@ -210,7 +214,8 @@ defmodule Hammer.Plug do
       {:deny, _n} ->
         on_deny_handler.(conn, [])
 
-      {:error, _reason} ->
+      {:error, reason} ->
+        Logger.error(check_rate_fail_reason: reason)
         on_deny_handler.(conn, [])
     end
   end
