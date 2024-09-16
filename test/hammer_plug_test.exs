@@ -15,6 +15,13 @@ defmodule Helpers do
     |> send_resp(404, "Not Found")
     |> halt()
   end
+
+  def on_error(conn, _opts) do
+    conn
+    |> put_resp_header("x-hammer-test", "yes")
+    |> send_resp(500, "Internal Server Error")
+    |> halt()
+  end
 end
 
 defmodule Hammer.PlugTest do
@@ -80,6 +87,28 @@ defmodule Hammer.PlugTest do
           |> Hammer.Plug.call(@opts)
 
         assert conn.status == 404
+        assert get_resp_header(conn, "x-hammer-test") == ["yes"]
+        assert conn.halted == true
+        assert called(Hammer.check_rate("test:127.0.0.1", 1_000, 3))
+      end
+    end
+  end
+
+  describe "with custom on_error handler" do
+    @opts Hammer.Plug.init(
+            rate_limit: {"test", 1_000, 3},
+            by: :ip,
+            on_error: &Helpers.on_error/2
+          )
+
+    test "halts the conn and sends a 500 (non default) on failure" do
+      with_mock Hammer, check_rate: fn _a, _b, _c -> {:error, true} end do
+        conn =
+          :get
+          |> conn("/hello")
+          |> Hammer.Plug.call(@opts)
+
+        assert conn.status == 500
         assert get_resp_header(conn, "x-hammer-test") == ["yes"]
         assert conn.halted == true
         assert called(Hammer.check_rate("test:127.0.0.1", 1_000, 3))
