@@ -1,7 +1,7 @@
 defmodule Hammer.Plug.MixProject do
   use Mix.Project
 
-  @version "4.0.0"
+  @version "4.0.0-rc.0"
 
   def project do
     [
@@ -43,7 +43,7 @@ defmodule Hammer.Plug.MixProject do
       {:credo, "~> 1.6", only: [:dev, :test]},
       {:dialyxir, "~> 1.1", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.28", only: :dev},
-      {:hammer, github: "ruslandoga/hammer", branch: "new-ets"},
+      {:hammer, github: "ruslandoga/hammer", branch: "just-use"},
       {:plug, "~> 1.0"}
     ]
   end

@@ -1,6 +1,7 @@
 # Hammer.Plug
 
-[![Build Status](https://github.com/ExHammer/hammer-plug/actions/workflows/ci.yml/badge.svg)](https://github.com/ExHammer/hammer-plug/actions/workflows/ci.yml) [![Hex.pm](https://img.shields.io/hexpm/v/hammer_plug.svg)](https://hex.pm/packages/hammer_plug) [![Documentation](https://img.shields.io/badge/documentation-gray)](https://hexdocs.pm/hammer_plug)
+[![Build Status](https://github.com/ExHammer/hammer-plug/actions/workflows/ci.yml/badge.svg)](https://github.com/ExHammer/hammer-plug/actions/workflows/ci.yml) [![Hex.pm](https://img.shields.io/hexpm/v/hammer_plug.svg)](https://hex.pm/packages/hammer_plug)
+[![Documentation](https://img.shields.io/badge/documentation-gray)](https://hexdocs.pm/hammer_plug)
 [![Total Download](https://img.shields.io/hexpm/dt/hammer_plug.svg)](https://hex.pm/packages/hammer_plug)
 [![License](https://img.shields.io/hexpm/l/hammer_plug.svg)](https://github.com/ExHammer/hammer-plug/blob/master/LICENSE.md)
 
@@ -12,14 +13,41 @@ or any Elixir system that uses plug.
 Example:
 
 ```elixir
-# Allow ten uploads per 60 seconds
-plug Hammer.Plug, [
-  rate_limit: {"video:upload", 60_000, 10},
-  by: {:session, :user_id}
+# Define your rate limiter
+defmodule MyApp.RateLimit do
+  use Hammer, backend: :ets
+end
+
+# Define your plug
+defmodule MyAppWeb.Plugs.VideoRateLimit do
+  use Hammer.Plug
+
+  @spec throttle(Plug.Conn.t(), Keyword.t()) :: {:allow, conn} | {:deny, conn}
+  def throttle(conn, opts) do
+    case conn.remote_ip do
+      # allow localhost
+      {127, 0, 0, 1} ->
+        {:allow, conn}
+
+      # deny some bad ip
+      {6, 6, 6, 6} ->
+        {:deny, conn}
+
+      # throttle the rest
+      remote_ip ->
+        key_prefix = 
+        key = "" <> List/to_string(:inet.ntoa(remote_ip))
+    end
+  end
+end
+
+# Register the plug in the pipeline
+plug MyAppWeb.RateLimitPlug, [
+  key_prefix: 
 ] when action == :upload_video_file
 
 def upload_video_file(conn, _opts) do
-  # ...
+  # the action is allowed
 end
 ```
 

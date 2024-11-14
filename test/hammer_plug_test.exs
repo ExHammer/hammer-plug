@@ -18,17 +18,15 @@ defmodule Helpers do
 end
 
 defmodule Hammer.PlugTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   use Plug.Test
 
+  defmodule RateLimit do
+    use Hammer, backend: :ets
+  end
+
   setup do
-    case :ets.info(:hammer_ets_buckets) do
-      :undefined -> :ok
-      _ -> :ets.delete(:hammer_ets_buckets)
-    end
-
-    start_supervised!({Hammer.Backend.ETS, cleanup_interval_ms: :timer.seconds(50)})
-
+    start_supervised!(RateLimit)
     :ok
   end
 
