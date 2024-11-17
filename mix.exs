@@ -1,7 +1,7 @@
 defmodule Hammer.Plug.MixProject do
   use Mix.Project
 
-  @version "3.0.0"
+  @version "3.0.1"
 
   def project do
     [
@@ -9,7 +9,7 @@ defmodule Hammer.Plug.MixProject do
       description: "A plug to apply rate-limiting, using Hammer.",
       source_url: "https://github.com/ExHammer/hammer-plug",
       homepage_url: "https://github.com/ExHammer/hammer-plug",
-      version: "3.0.0",
+      version: @version,
       elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -32,7 +32,6 @@ defmodule Hammer.Plug.MixProject do
       extras: ["guides/Overview.md", "CHANGELOG.md"],
       source_ref: "v#{@version}",
       source_url: "https://github.com/elixir-plug/plug",
-      main: "overview",
       formatters: ["html", "epub"]
     ]
   end

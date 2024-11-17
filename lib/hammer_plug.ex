@@ -114,24 +114,32 @@ defmodule Hammer.Plug do
       #     end
 
   """
+  @behaviour Plug
   import Plug.Conn
+  require Logger
 
-  def init, do: init([])
-
+  @impl true
   def init(opts) do
     rate_limit_spec = Keyword.get(opts, :rate_limit)
 
-    if rate_limit_spec == nil do
-      raise Hammer.Plug.NoRateLimitError
+    unless rate_limit_spec do
+      raise ArgumentError, "must specify a :rate_limit"
     end
 
-    opts
-  end
+    {id_prefix, scale, limit} = rate_limit_spec
 
-  def call(conn, opts) do
-    {id_prefix, scale, limit} = Keyword.get(opts, :rate_limit)
     by = Keyword.get(opts, :by, :ip)
+
+    unless is_valid_method(by) do
+      raise ArgumentError, "invalid :by option: #{inspect(by)}"
+    end
+
     when_nil = Keyword.get(opts, :when_nil, :use_nil)
+
+    unless when_nil in [:use_nil, :raise, :pass] do
+      raise ArgumentError,
+            "expected one of :user_nil, :raise, :pass for :when_nil option, got: #{inspect(when_nil)}"
+    end
 
     on_deny_handler =
       Keyword.get(
@@ -140,9 +148,38 @@ defmodule Hammer.Plug do
         &Hammer.Plug.default_on_deny_handler/2
       )
 
-    if !is_valid_method(by) do
-      raise "Hammer.Plug: invalid `by` parameter"
-    end
+    config = %{
+      id_prefix: id_prefix,
+      scale: scale,
+      limit: limit,
+      by: by,
+      when_nil: when_nil,
+      on_deny: on_deny_handler
+    }
+
+    plug_name = plug_name(id_prefix)
+
+    Logger.warn("""
+    Hummer.Plug is deprecated. Please consider replacing it with a function plug:
+
+        plug :#{plug_name} # when action in ...
+
+        #{render_custom_plug(config) |> String.replace("\n", "\n    ")}
+    """)
+
+    config
+  end
+
+  @impl true
+  def call(conn, config) do
+    %{
+      id_prefix: id_prefix,
+      scale: scale,
+      limit: limit,
+      by: by,
+      when_nil: when_nil,
+      on_deny: on_deny_handler
+    } = config
 
     request_identifier = get_request_identifier(conn, by)
 
@@ -224,12 +261,120 @@ defmodule Hammer.Plug do
       _ -> false
     end
   end
+
+  defp plug_name(id_prefix) do
+    plug_name = "rate_limit_" <> String.replace(id_prefix, ":", "_")
+    String.trim_trailing(plug_name, "_")
+  end
+
+  defp render_func(func) do
+    inspect(func)
+    |> String.trim_leading("&")
+    |> String.split("/")
+    |> List.first()
+  end
+
+  @doc false
+  def render_custom_plug(config) do
+    %{
+      id_prefix: id_prefix,
+      scale: scale,
+      limit: limit,
+      by: by,
+      when_nil: when_nil,
+      on_deny: on_deny_handler
+    } = config
+
+    plug_name = plug_name(id_prefix)
+
+    request_id =
+      case by do
+        :ip ->
+          "List.to_string(:inet.ntoa(conn.remote_ip))"
+
+        {:session, key} ->
+          "get_session(conn, #{inspect(key)})"
+
+        {:session, key, func} ->
+          """
+          if value = get_session(conn, #{key}) do
+            #{render_func(func)}(value)
+          end
+          """
+
+        {:conn, func} ->
+          "#{render_func(func)}(conn)"
+      end
+
+    on_deny_handler = render_func(on_deny_handler)
+
+    on_deny =
+      if on_deny_handler == "Hammer.Plug.default_on_deny_handler" do
+        "conn |> send_resp(429, \"Too Many Requests\") |> halt()"
+      else
+        "#{on_deny_handler}(conn)"
+      end
+
+    nil_handler =
+      case when_nil do
+        :use_nil ->
+          fn body ->
+            """
+            # note that request_id might be nil
+            #{body}
+            """
+          end
+
+        :raise ->
+          fn body ->
+            """
+            if request_id do
+              #{body}
+            else
+              raise "Rate limiting request identifier value is nil"
+            end
+            """
+          end
+
+        :pass ->
+          fn body ->
+            """
+            if request_id do
+              #{body}
+            else
+              conn
+            end
+            """
+          end
+      end
+
+    """
+    defp #{plug_name}(conn, _opts) do
+      request_id = #{request_id}
+
+      #{nil_handler.("""
+    key = "#{id_prefix}:\#{request_id}"
+    scale = #{scale}
+    limit = #{limit}
+
+    case Hammer.check_rate(key, scale, limit) do
+    {:allow, _count} ->
+      conn
+
+    {:deny, _limit} ->
+      #{on_deny}
+
+    {:error, _reason} ->
+      #{on_deny}
+    end
+    """)}
+    end
+    """
+    |> Code.format_string!()
+    |> IO.iodata_to_binary()
+  end
 end
 
 defmodule Hammer.Plug.NilError do
   defexception message: "Request identifier value is nil, and :on_nil option set to :raise"
-end
-
-defmodule Hammer.Plug.NoRateLimitError do
-  defexception message: "Must specify a :rate_limit"
 end

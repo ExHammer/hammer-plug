@@ -1,3 +1,26 @@
+> [!WARNING]
+> This library is deprecated. Please use custom function plugs instead.
+
+```elixir
+plug :limit_video_upload when action == :upload_video_file
+
+# ... controller actions
+# ... other plugs
+# ... etc.
+
+defp limit_video_upload(conn, _opts) do
+  user_id = conn.assigns.current_user.id
+  key = "video:upload:#{user_id}"
+  scale = :timer.seconds(60)
+  limit = 10
+
+  case Hammer.check_rate(key, scale, limit) do
+    {:allow, _count} -> conn
+    {:deny, _limit} -> conn |> send_resp(429, []) |> halt()
+  end
+end
+```
+
 # Hammer.Plug
 
 [![Build Status](https://github.com/ExHammer/hammer-plug/actions/workflows/ci.yml/badge.svg)](https://github.com/ExHammer/hammer-plug/actions/workflows/ci.yml) [![Hex.pm](https://img.shields.io/hexpm/v/hammer_plug.svg)](https://hex.pm/packages/hammer_plug) [![Documentation](https://img.shields.io/badge/documentation-gray)](https://hexdocs.pm/hammer_plug)
