@@ -1,22 +1,28 @@
 > [!WARNING]
-> This library is deprecated. Please consider using custom function plugs suggested in the compilation warnings instead.
+> This library is deprecated.
+> 
+> Please consider using custom function plugs suggested in the compilation warnings instead.
 
 ```elixir
-plug :limit_video_upload when action == :upload_video_file
+plug :rate_limit_video_upload # when action in ...
 
-# ... controller actions
-# ... other plugs
-# ... etc.
+defp rate_limit_video_upload(conn, _opts) do
+  request_id = get_session(conn, :user_id)
 
-defp limit_video_upload(conn, _opts) do
-  user_id = conn.assigns.current_user.id
-  key = "video:upload:#{user_id}"
-  scale = :timer.seconds(60)
+  # note that request_id might be nil
+  key = "video:upload:#{request_id}"
+  scale = 60000
   limit = 10
 
   case Hammer.check_rate(key, scale, limit) do
-    {:allow, _count} -> conn
-    {:deny, _limit} -> conn |> send_resp(429, []) |> halt()
+    {:allow, _count} ->
+      conn
+
+    {:deny, _limit} ->
+      conn |> send_resp(429, "Too Many Requests") |> halt()
+
+    {:error, _reason} ->
+      conn |> send_resp(429, "Too Many Requests") |> halt()
   end
 end
 ```
