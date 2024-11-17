@@ -1,5 +1,5 @@
 > [!WARNING]
-> This library is deprecated. Please use custom function plugs instead.
+> This library is deprecated. Please consider using custom function plugs suggested in the compilation warnings instead.
 
 ```elixir
 plug :limit_video_upload when action == :upload_video_file
@@ -20,6 +20,8 @@ defp limit_video_upload(conn, _opts) do
   end
 end
 ```
+
+---
 
 # Hammer.Plug
 
