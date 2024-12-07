@@ -170,7 +170,7 @@ defmodule Hammer.Plug do
     config
   end
 
-  @impl true
+  @impl Plug
   def call(conn, config) do
     %{
       id_prefix: id_prefix,
