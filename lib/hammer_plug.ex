@@ -118,7 +118,7 @@ defmodule Hammer.Plug do
   import Plug.Conn
   require Logger
 
-  @impl true
+  @impl Plug
   def init(opts) do
     rate_limit_spec = Keyword.get(opts, :rate_limit)
 
