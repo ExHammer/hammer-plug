@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.0.1 (2024-12-20)
+
+### Changed
+
+- End-of-life. Please consider using custom function plugs suggested in the compilation warnings instead. We will not be releasing any more versions.
+
 ## 3.0.0 (2022-11-25)
 
 ### Changed
