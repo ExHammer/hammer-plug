@@ -1,5 +1,12 @@
 # Hammer.Plug
 
+> [!WARNING - End-of-Life - 2024-12-20]
+> This library is End-of-Life. With the 7.x release, it s much easier to create your own
+> rate limiters. But shipping a common plug do not make sense anymore. Please consider
+> using custom function plugs. See the [Hammer documentation](https://hexdocs.pm/hammer/7.0.0-rc.3/tutorial.html#using-hammer-as-a-plug-in-phoenix) for more information.
+>
+
+---
 [![Build Status](https://github.com/ExHammer/hammer-plug/actions/workflows/ci.yml/badge.svg)](https://github.com/ExHammer/hammer-plug/actions/workflows/ci.yml) [![Hex.pm](https://img.shields.io/hexpm/v/hammer_plug.svg)](https://hex.pm/packages/hammer_plug) [![Documentation](https://img.shields.io/badge/documentation-gray)](https://hexdocs.pm/hammer_plug)
 [![Total Download](https://img.shields.io/hexpm/dt/hammer_plug.svg)](https://hex.pm/packages/hammer_plug)
 [![License](https://img.shields.io/hexpm/l/hammer_plug.svg)](https://github.com/ExHammer/hammer-plug/blob/master/LICENSE.md)

@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.1.0 (2024-12-20)
+
+### Changed
+
+- End-of-life. Please consider using custom function plugs suggested in the compilation warnings instead. We will not be releasing any more versions. See the [Hammer documentation](https://hexdocs.pm/hammer/7.0.0-rc.3/tutorial.html#using-hammer-as-a-plug-in-phoenix) for more information.
+
 ## 3.0.0 (2022-11-25)
 
 ### Changed
