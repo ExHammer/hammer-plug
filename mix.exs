@@ -44,7 +44,7 @@ defmodule Hammer.Plug.MixProject do
       {:dialyxir, "~> 1.1", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.28", only: :dev},
       {:hammer, "~> 6.0"},
-      {:plug, "~> 1.0"},
+      {:plug, "~> 1.14"},
       {:mock, "~> 0.3.0", only: :test}
     ]
   end

@@ -95,7 +95,7 @@ defmodule Hammer.Plug do
 
     by = Keyword.get(opts, :by, :ip)
 
-    unless is_valid_method(by) do
+    unless valid_method?(by) do
       raise ArgumentError, "invalid :by option: #{inspect(by)}"
     end
 
@@ -215,7 +215,7 @@ defmodule Hammer.Plug do
     end
   end
 
-  defp is_valid_method(by) do
+  defp valid_method?(by) do
     case by do
       :ip -> true
       {:session, key} when is_atom(key) -> true
@@ -228,13 +228,6 @@ defmodule Hammer.Plug do
   defp plug_name(id_prefix) do
     plug_name = "rate_limit_" <> String.replace(id_prefix, ":", "_")
     String.trim_trailing(plug_name, "_")
-  end
-
-  defp render_func(func) do
-    inspect(func)
-    |> String.trim_leading("&")
-    |> String.split("/")
-    |> List.first()
   end
 end
 
