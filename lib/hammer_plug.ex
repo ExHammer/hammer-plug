@@ -12,7 +12,8 @@ defmodule Hammer.Plug do
         rate_limit: {"chat:message:post", 60_000, 20},
         by: {:session, :user, &Helpers.get_user_id/2},
         when_nil: :raise,
-        on_deny: &Helpers.handle_deny/2
+        on_deny: &Helpers.handle_deny/2,
+        on_error: &Helpers.handle_error/2
       ] when action == :post_chat_message
   ## Options
   ### :rate_limit (`{prefix::string, time_scale::int, limit::int}`)
@@ -78,6 +79,11 @@ defmodule Hammer.Plug do
       #     def handle_rate_limit_deny(conn, _opts) do
       #       ...
       #     end
+
+  ### :on_error
+  A plug function to be invoked when there is an error when
+  checking the limit.
+
   """
   @behaviour Plug
   import Plug.Conn
@@ -113,13 +119,21 @@ defmodule Hammer.Plug do
         &Hammer.Plug.default_on_deny_handler/2
       )
 
+    on_error_handler =
+      Keyword.get(
+        opts,
+        :on_error,
+        &Hammer.Plug.default_on_deny_handler/2
+      )
+
     config = %{
       id_prefix: id_prefix,
       scale: scale,
       limit: limit,
       by: by,
       when_nil: when_nil,
-      on_deny: on_deny_handler
+      on_deny: on_deny_handler,
+      on_error: on_error_handler
     }
 
     plug_name = plug_name(id_prefix)
@@ -142,7 +156,8 @@ defmodule Hammer.Plug do
       limit: limit,
       by: by,
       when_nil: when_nil,
-      on_deny: on_deny_handler
+      on_deny: on_deny_handler,
+      on_error: on_error_handler
     } = config
 
     request_identifier = get_request_identifier(conn, by)
@@ -152,7 +167,15 @@ defmodule Hammer.Plug do
         case when_nil do
           # Proceed
           :use_nil ->
-            do_rate_limit_check(conn, id_prefix, nil, scale, limit, on_deny_handler)
+            do_rate_limit_check(
+              conn,
+              id_prefix,
+              nil,
+              scale,
+              limit,
+              on_deny_handler,
+              on_error_handler
+            )
 
           :raise ->
             raise Hammer.Plug.NilError
@@ -163,7 +186,7 @@ defmodule Hammer.Plug do
         end
 
       id ->
-        do_rate_limit_check(conn, id_prefix, id, scale, limit, on_deny_handler)
+        do_rate_limit_check(conn, id_prefix, id, scale, limit, on_deny_handler, on_error_handler)
     end
   end
 
@@ -200,7 +223,15 @@ defmodule Hammer.Plug do
     end
   end
 
-  defp do_rate_limit_check(conn, id_prefix, request_id, scale, limit, on_deny_handler) do
+  defp do_rate_limit_check(
+         conn,
+         id_prefix,
+         request_id,
+         scale,
+         limit,
+         on_deny_handler,
+         on_error_handler
+       ) do
     full_id = "#{id_prefix}:#{request_id}"
 
     case Hammer.check_rate(full_id, scale, limit) do
@@ -211,7 +242,7 @@ defmodule Hammer.Plug do
         on_deny_handler.(conn, [])
 
       {:error, _reason} ->
-        on_deny_handler.(conn, [])
+        on_error_handler.(conn, [])
     end
   end
 
