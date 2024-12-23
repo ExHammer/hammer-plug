@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.2.0 (2024-12-23)
+
+- Adding an on_error handler for people who still need the plug a little longer. 
+
 ## 3.1.0 (2024-12-20)
 
 ### Changed
